@@ -264,6 +264,8 @@ public final class Database
 	 *  INSERT, DELETE, or UPDATE request.
 	 */
 	private int		  affectedRows = 0;
+	
+	private boolean isDistinct = false;
 
 	/** This Map holds the tables that are currently active. I
 	 *  have to use be a Map (as compared to a Set), because
@@ -402,6 +404,9 @@ public final class Database
 		USE			= tokens.create( "'USE"		),
 		VALUES 		= tokens.create( "'VALUES"	),
 		WHERE		= tokens.create( "'WHERE"	),
+		
+		//DISTINCT 추가
+		DISTINCT    = tokens.create("'DISTINCT"),
 
 		WORK		= tokens.create( "WORK|TRAN(SACTION)?"		),
 		ADDITIVE	= tokens.create( "\\+|-" 					),
@@ -764,7 +769,7 @@ public final class Database
 		else if( in.matchAdvance(INSERT) != null )
 		{	in.required( INTO );
 			String tableName = in.required( IDENTIFIER );
-
+			
 			List columns = null, values = null;
 
 			if( in.matchAdvance(LP) != null )
@@ -796,8 +801,12 @@ public final class Database
 			affectedRows = doDelete( tableName, expr() );
 		}
 		else if( in.matchAdvance(SELECT) != null )
-		{	List columns = idList();
-
+		{	
+			
+			if(in.matchAdvance(DISTINCT)!=null) {
+				isDistinct = true;
+			}
+			List columns = idList();
 			String into = null;
 			if( in.matchAdvance(INTO) != null )
 				into = in.required(IDENTIFIER);
@@ -827,7 +836,7 @@ public final class Database
 
 	private List idList()			throws ParseFailure
 	{	List identifiers = null;
-		if( in.matchAdvance(STAR) == null )
+		if( in.matchAdvance(STAR) == null )  //STAR를 만나지 않았다면
 		{	identifiers = new ArrayList();
 			String id;
 			while( (id = in.required(IDENTIFIER)) != null )
@@ -835,6 +844,9 @@ public final class Database
 				if( in.matchAdvance(COMMA) == null )
 					break;
 			}
+		}else {    //star를 만났다면
+			System.out.println("star를 만났다!!");
+			identifiers = new ArrayList();
 		}
 		return identifiers;
 	}
@@ -1394,22 +1406,20 @@ public final class Database
 										final Expression where )
 										throws ParseFailure
 	{
-
 		Iterator tableNames = requestedTableNames.iterator();
-
 		assert tableNames.hasNext() : "No tables to use in select!" ;
-
 		// The primary table is the first one listed in the
 		// FROM clause. The participantsInJoin are the other
 		// tables listed in the FROM clause. We're passed in the
 		// table names; use these names to get the actual Table
 		// objects.
 
-		Table primary = (Table) tables.get( (String) tableNames.next() );
+		Table primary =  (Table)tables.get( (String) tableNames.next() );
 
 		List participantsInJoin = new ArrayList();
 		while( tableNames.hasNext() )
-		{	String participant = (String) tableNames.next();
+		{	
+			String participant = (String) tableNames.next();
 			participantsInJoin.add( tables.get(participant) );
 		}
 
@@ -1435,7 +1445,19 @@ public final class Database
 			};
 
 		try
-		{	Table result = primary.select(selector, columns, participantsInJoin);
+		{	
+			Table result;
+			if(columns.size()!=0) {
+				 result = primary.select(selector, columns, participantsInJoin);
+			}else {
+				//star인 경우
+				System.out.println("star인경우");
+				result = primary.select(selector, participantsInJoin);
+			}
+			//distint 처리
+			if(isDistinct) {
+				result.doDistinct();
+			}
 
 			// If this is a "SELECT INTO <table>" request, remove the 
 			// returned table from the UnmodifiableTable wrapper, give

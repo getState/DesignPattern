@@ -48,7 +48,7 @@ import com.holub.tools.ArrayIterator;
  * @include /etc/license.txt
  */
 
-/* package */ class ConcreteTable implements Table {
+/* package */ public class ConcreteTable implements Table {
 	// Supporting clone() complicates the following declarations. In
 	// particular, the fields can't be final because they're modified
 	// in the clone() method. Also, the rows field has to be declared
@@ -67,6 +67,11 @@ import com.holub.tools.ArrayIterator;
 	private transient boolean isDirty = false;
 	private transient LinkedList transactionStack = new LinkedList();
 
+	
+	
+	public Table accept(Visitor visitor) {
+		return visitor.visitConcrete(this);
+	}
 	/**********************************************************************
 	 * Create a table with the given name and columns.
 	 * 
@@ -190,7 +195,32 @@ import com.holub.tools.ArrayIterator;
 		registerInsert(newRow);
 		isDirty = true;
 	}
-
+	public void doDistinct() {
+		LinkedList newRowSet = new LinkedList();
+		
+		//중복 체크
+		for(int i = 0 ; i<rowSet.size(); i++) {
+			Object[] row = (Object[])rowSet.get(i);
+			boolean check = false;
+			for(int j = 0 ; j<newRowSet.size(); j++) {
+				Object[] hashRow = (Object[])newRowSet.get(j);
+				int count = 0;
+				for(int z = 0 ; z<this.width() ; z++) {
+					if(row[z].equals(hashRow[z])) {
+						count++;
+					}
+				}
+				if(count==this.width()) {
+					check = true;
+				}
+			}
+			if(!check) {
+				newRowSet.add(rowSet.get(i));
+			}
+			
+		}
+		rowSet = newRowSet;
+	}
 	// @insert-end
 	// ----------------------------------------------------------------------
 	// Traversing and cursor-based Updating and Deleting

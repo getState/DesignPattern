@@ -55,7 +55,11 @@ public class UnmodifiableTable implements Table
 	public UnmodifiableTable( Table wrapped )
 	{	this.wrapped = wrapped;
 	}
-
+	
+	
+	public Table accept(Visitor visitor) {
+		return visitor.visitUnmod(this);
+	}
 	/** Return an UnmodifieableTable that wraps a clone of the
 	 *  currently wrapped table. (A deep copy is used.)
 	 */
@@ -75,7 +79,7 @@ public class UnmodifiableTable implements Table
 	public void begin	 (			 ){ illegal(); }
 	public void commit	 (boolean all){ illegal(); }
 	public void rollback (boolean all){ illegal(); }
-
+	public void doDistinct(){ wrapped.doDistinct();}
 	private final void illegal()
 	{	throw new UnsupportedOperationException();
 	}

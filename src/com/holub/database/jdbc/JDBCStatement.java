@@ -55,7 +55,10 @@ public class JDBCStatement extends StatementAdapter
 	
 	public ResultSet executeQuery(String sqlQuery) throws SQLException
 	{	try
-		{	Table result = database.execute( sqlQuery );
+		{
+		database.execute( sqlQuery );
+		Table result = database.execute( sqlQuery );
+			
 			return new JDBCResultSet( result.rows() );
 		}
 		catch( Exception e )
